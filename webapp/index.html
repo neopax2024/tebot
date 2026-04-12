@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Code Scanner & Generator</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <!-- ===== App Shell ===== -->
+  <div id="app">
+
+    <!-- Tab Bar -->
+    <nav class="tab-bar">
+      <button class="tab-btn active" data-tab="scan">
+        <span class="tab-icon">📷</span>
+        <span class="tab-label">Scan</span>
+      </button>
+      <button class="tab-btn" data-tab="generate">
+        <span class="tab-icon">⚡</span>
+        <span class="tab-label">Generate</span>
+      </button>
+      <button class="tab-btn" data-tab="history">
+        <span class="tab-icon">📜</span>
+        <span class="tab-label">History</span>
+      </button>
+    </nav>
+
+    <!-- ===== SCAN TAB ===== -->
+    <section class="tab-content active" id="tab-scan">
+      <div class="page-header">
+        <h1>Scan Code</h1>
+        <p class="subtitle">Upload an image, PDF or use your camera</p>
+      </div>
+
+      <!-- Camera scanner -->
+      <div class="card camera-card" id="camera-section" style="display:none">
+        <div class="camera-viewport">
+          <video id="camera-video" autoplay playsinline></video>
+          <div class="scan-overlay">
+            <div class="scan-frame"></div>
+          </div>
+        </div>
+        <div class="camera-controls">
+          <button class="btn btn-secondary" id="btn-stop-camera">Stop Camera</button>
+        </div>
+      </div>
+
+      <!-- Upload card -->
+      <div class="card upload-card" id="upload-section">
+        <div class="upload-zone" id="upload-zone">
+          <div class="upload-icon">📁</div>
+          <p>Drag & drop an image or PDF<br/>or click to browse</p>
+          <input type="file" id="file-input" accept="image/*,.pdf" hidden />
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" id="btn-open-camera">📷 Open Camera</button>
+          <button class="btn btn-outline" id="btn-upload-file">🖼 Upload File</button>
+        </div>
+      </div>
+
+      <!-- Scan result -->
+      <div class="card result-card" id="scan-result" style="display:none">
+        <div class="result-header">
+          <span class="result-badge" id="result-badge">QR Code</span>
+          <span class="safety-badge" id="safety-badge">✅ Safe</span>
+        </div>
+        <div class="result-body">
+          <div class="result-type" id="result-type">URL</div>
+          <div class="result-data" id="result-data"></div>
+          <div class="result-summary" id="result-summary"></div>
+        </div>
+        <div class="result-actions">
+          <button class="btn btn-primary" id="btn-open-link" style="display:none">🔗 Open Link</button>
+          <button class="btn btn-outline" id="btn-copy-data">📋 Copy</button>
+          <button class="btn btn-outline" id="btn-regen">⚡ Generate</button>
+          <button class="btn btn-outline" id="btn-send-to-bot">📤 Send to Bot</button>
+        </div>
+      </div>
+
+      <div class="loading-spinner" id="scan-spinner" style="display:none">
+        <div class="spinner"></div>
+        <p>Scanning…</p>
+      </div>
+    </section>
+
+    <!-- ===== GENERATE TAB ===== -->
+    <section class="tab-content" id="tab-generate">
+      <div class="page-header">
+        <h1>Generate Code</h1>
+        <p class="subtitle">Create customised QR codes, barcodes, and more</p>
+      </div>
+
+      <!-- Type selector -->
+      <div class="card">
+        <label class="form-label">Code Type</label>
+        <div class="type-selector">
+          <button class="type-btn active" data-type="qr">🔲 QR Code</button>
+          <button class="type-btn" data-type="barcode">||| Barcode</button>
+          <button class="type-btn" data-type="datamatrix">▪▪ Data Matrix</button>
+        </div>
+      </div>
+
+      <!-- QR Options -->
+      <div class="card gen-options" id="opts-qr">
+        <label class="form-label">Data to Encode</label>
+        <div class="input-group">
+          <select id="qr-data-type" class="form-select">
+            <option value="text">📝 Plain Text</option>
+            <option value="url">🔗 URL</option>
+            <option value="email">📧 Email</option>
+            <option value="phone">📞 Phone</option>
+            <option value="wifi">📶 WiFi</option>
+            <option value="contact">👤 Contact (vCard)</option>
+          </select>
+        </div>
+        <textarea id="qr-data" class="form-textarea" rows="3" placeholder="Enter your data here…"></textarea>
+
+        <!-- WiFi fields (shown when wifi type is selected) -->
+        <div id="wifi-fields" style="display:none">
+          <input type="text" id="wifi-ssid" class="form-input" placeholder="WiFi SSID" />
+          <input type="password" id="wifi-password" class="form-input" placeholder="Password" />
+          <select id="wifi-security" class="form-select">
+            <option value="WPA">WPA/WPA2</option>
+            <option value="WEP">WEP</option>
+            <option value="">None</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-col">
+            <label class="form-label">FG Color</label>
+            <div class="color-picker-wrap">
+              <input type="color" id="qr-fg-color" value="#000000" class="color-input" />
+              <span id="qr-fg-label">#000000</span>
+            </div>
+          </div>
+          <div class="form-col">
+            <label class="form-label">BG Color</label>
+            <div class="color-picker-wrap">
+              <input type="color" id="qr-bg-color" value="#ffffff" class="color-input" />
+              <span id="qr-bg-label">#ffffff</span>
+            </div>
+          </div>
+        </div>
+
+        <label class="form-label">Style</label>
+        <div class="style-selector">
+          <button class="style-btn active" data-style="square">■ Square</button>
+          <button class="style-btn" data-style="rounded">◼ Rounded</button>
+          <button class="style-btn" data-style="dots">● Dots</button>
+        </div>
+
+        <label class="form-label">Error Correction</label>
+        <select id="qr-ec" class="form-select">
+          <option value="L">L — 7%</option>
+          <option value="M">M — 15%</option>
+          <option value="Q">Q — 25%</option>
+          <option value="H" selected>H — 30% (recommended)</option>
+        </select>
+
+        <label class="form-label">Logo / Image (optional)</label>
+        <div class="logo-upload" id="logo-upload-zone">
+          <input type="file" id="logo-input" accept="image/*" hidden />
+          <div id="logo-preview" style="display:none">
+            <img id="logo-img" src="" alt="Logo" />
+            <button class="btn-icon" id="btn-remove-logo">✕</button>
+          </div>
+          <button class="btn btn-outline btn-sm" id="btn-upload-logo" style="display:block">Upload Logo</button>
+        </div>
+
+        <label class="form-label">Export Format</label>
+        <div class="format-selector">
+          <button class="format-btn active" data-fmt="png">🖼 PNG</button>
+          <button class="format-btn" data-fmt="svg">📐 SVG</button>
+          <button class="format-btn" data-fmt="pdf">📄 PDF</button>
+        </div>
+      </div>
+
+      <!-- Barcode Options -->
+      <div class="card gen-options" id="opts-barcode" style="display:none">
+        <label class="form-label">Barcode Format</label>
+        <select id="bc-format" class="form-select">
+          <option value="code128">Code 128 (universal)</option>
+          <option value="ean13">EAN-13</option>
+          <option value="ean8">EAN-8</option>
+          <option value="upca">UPC-A</option>
+          <option value="code39">Code 39</option>
+          <option value="itf">ITF</option>
+        </select>
+        <label class="form-label">Data</label>
+        <input type="text" id="bc-data" class="form-input" placeholder="Enter barcode data…" />
+        <div class="form-row">
+          <div class="form-col">
+            <label class="form-label">FG Color</label>
+            <input type="color" id="bc-fg-color" value="#000000" class="color-input" />
+          </div>
+          <div class="form-col">
+            <label class="form-label">BG Color</label>
+            <input type="color" id="bc-bg-color" value="#ffffff" class="color-input" />
+          </div>
+        </div>
+        <div class="format-selector">
+          <button class="format-btn active" data-fmt="png">🖼 PNG</button>
+          <button class="format-btn" data-fmt="svg">📐 SVG</button>
+        </div>
+      </div>
+
+      <!-- Data Matrix Options -->
+      <div class="card gen-options" id="opts-datamatrix" style="display:none">
+        <label class="form-label">Data</label>
+        <textarea id="dm-data" class="form-textarea" rows="3" placeholder="Enter data to encode…"></textarea>
+        <div class="form-row">
+          <div class="form-col">
+            <label class="form-label">FG Color</label>
+            <input type="color" id="dm-fg-color" value="#000000" class="color-input" />
+          </div>
+          <div class="form-col">
+            <label class="form-label">BG Color</label>
+            <input type="color" id="dm-bg-color" value="#ffffff" class="color-input" />
+          </div>
+        </div>
+        <div class="format-selector">
+          <button class="format-btn active" data-fmt="png">🖼 PNG</button>
+          <button class="format-btn" data-fmt="pdf">📄 PDF</button>
+        </div>
+      </div>
+
+      <!-- Live Preview -->
+      <div class="card preview-card">
+        <div class="preview-header">
+          <span class="form-label">Live Preview</span>
+          <button class="btn btn-primary btn-sm" id="btn-refresh-preview">Refresh</button>
+        </div>
+        <div class="preview-area" id="preview-area">
+          <div class="preview-placeholder">Preview will appear here</div>
+          <img id="preview-img" src="" alt="Preview" style="display:none; max-width:100%; border-radius:8px;" />
+        </div>
+      </div>
+
+      <div class="generate-actions">
+        <button class="btn btn-primary btn-full" id="btn-generate">⚡ Generate & Download</button>
+        <button class="btn btn-outline btn-full" id="btn-generate-send">📤 Send to Telegram</button>
+      </div>
+
+      <div class="loading-spinner" id="gen-spinner" style="display:none">
+        <div class="spinner"></div>
+        <p>Generating…</p>
+      </div>
+    </section>
+
+    <!-- ===== HISTORY TAB ===== -->
+    <section class="tab-content" id="tab-history">
+      <div class="page-header">
+        <h1>History</h1>
+        <p class="subtitle">Your scanned and generated codes</p>
+      </div>
+
+      <div class="toggle-group">
+        <button class="toggle-btn active" data-hist="scan">📷 Scans</button>
+        <button class="toggle-btn" data-hist="gen">⚡ Generated</button>
+      </div>
+
+      <div id="history-list" class="history-list">
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <p>No history yet.</p>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /#app -->
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast"></div>
+
+  <script src="js/app.js"></script>
+  <script src="js/scanner.js"></script>
+  <script src="js/generator.js"></script>
+</body>
+</html>
