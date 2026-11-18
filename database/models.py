@@ -23,8 +23,31 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy import JSON
 from sqlalchemy.orm import DeclarativeBase, relationship
+
+from sqlalchemy import types as sa_types
+
+class _UUIDCompat(sa_types.TypeDecorator):
+    """UUID that works on both PostgreSQL and SQLite."""
+    impl = sa_types.String
+    cache_ok = True
+    def __init__(self, as_uuid=False, **kw):
+        super().__init__(length=36, **kw)
+    def process_bind_param(self, value, dialect):
+        return str(value) if value is not None else None
+    def process_result_value(self, value, dialect):
+        import uuid as _uuid
+        return _uuid.UUID(value) if value is not None else None
+
+try:
+    from sqlalchemy.dialects.postgresql import UUID as _PGUUID
+    class UUID(_PGUUID):
+        pass
+except ImportError:
+    UUID = _UUIDCompat
+
+JSONB = JSON
 
 
 class Base(DeclarativeBase):

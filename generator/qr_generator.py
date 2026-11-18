@@ -89,14 +89,20 @@ def _generate_png(opts: QROptions) -> bytes:
     qr.add_data(opts.data)
     qr.make(fit=True)
 
-    img: Image.Image = qr.make_image(
+    # Generate with styled drawers; apply colors via fill_color/back_color
+    # (SolidFillColorMask has a known rendering bug with some qrcode versions)
+    raw: Image.Image = qr.make_image(
         image_factory=StyledPilImage,
         module_drawer=drawer_cls(),
-        color_mask=SolidFillColorMask(
-            back_color=(*bg_rgb, 255),
-            front_color=(*fg_rgb, 255),
-        ),
-    ).convert("RGBA")
+    ).convert("RGB")
+
+    # Manually remap black→fg_rgb and white→bg_rgb
+    import numpy as np
+    arr = np.array(raw)
+    mask = np.all(arr < 128, axis=2)  # True where dark modules are
+    result = np.full_like(arr, bg_rgb)
+    result[mask] = fg_rgb
+    img: Image.Image = Image.fromarray(result.astype(np.uint8), "RGB").convert("RGBA")
 
     # Embed logo
     if opts.logo_path and os.path.exists(opts.logo_path):

@@ -14,8 +14,8 @@ psycopg2-binary==2.9.10       # sync driver for Alembic CLI
 
 # ── Configuration ─────────────────────────────────────────────────────────
 python-dotenv==1.0.1
-pydantic==2.10.3
-pydantic-settings==2.6.1
+pydantic>=2.4.1,<2.10
+pydantic-settings>=2.6.1
 
 # ── QR code generation ────────────────────────────────────────────────────
 qrcode[pil]==8.0
