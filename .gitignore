@@ -35,3 +35,4 @@ database/migrations/versions/*.py
 # Coverage
 .coverage
 htmlcov/
+test.db
